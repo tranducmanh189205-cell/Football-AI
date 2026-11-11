@@ -1,0 +1,21 @@
+home_team,away_team,home_form,away_form,home_goals,away_goals,result
+Manchester City,Chelsea,8,6,3,1,H
+Liverpool,Arsenal,7,8,1,1,D
+Chelsea,Liverpool,5,8,0,2,A
+Arsenal,Manchester City,7,9,1,3,A
+Manchester United,Chelsea,6,7,2,2,D
+Liverpool,Manchester United,9,5,3,0,H
+Chelsea,Arsenal,6,7,2,1,H
+Arsenal,Liverpool,8,8,2,2,D
+Manchester City,Liverpool,9,8,2,1,H
+Manchester United,Arsenal,5,8,1,2,A
+Chelsea,Manchester City,7,9,1,2,A
+Arsenal,Chelsea,8,6,2,0,H 
+Liverpool,Manchester City,8,8,1,1,D
+Manchester City,Arsenal,9,7,3,2,H
+Manchester United,Liverpool,6,9,1,3,A
+Chelsea,Manchester United,7,6,2,1,H
+Arsenal,Manchester United,8,6,2,1,H
+Liverpool,Chelsea,9,7,2,0,H
+Manchester City,Manchester United,9,6,4,1,H
+Arsenal,Liverpool,7,8,1,2,A

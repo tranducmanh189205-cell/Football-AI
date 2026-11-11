@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Football AI | Multi-League Match Prediction & Analytics</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #030712;
+            --bg-card: rgba(17, 24, 39, 0.75);
+            --border-glass: rgba(255, 255, 255, 0.08);
+            --primary: #00ff9d;
+            --primary-glow: rgba(0, 255, 157, 0.25);
+            --secondary: #00bfff;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --win: #10b981;
+            --draw: #6b7280;
+            --loss: #ef4444;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--text-main);
+            background: 
+                radial-gradient(circle at 10% 10%, rgba(0, 255, 157, 0.06), transparent 30%),
+                radial-gradient(circle at 90% 90%, rgba(0, 191, 255, 0.06), transparent 30%),
+                var(--bg-base);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        a { text-decoration: none; }
+
+        /* NAVBAR */
+        nav {
+            position: sticky; top: 0; z-index: 1000; height: 80px; padding: 0 5%;
+            display: flex; align-items: center; justify-content: space-between;
+            background: rgba(3, 7, 18, 0.85); border-bottom: 1px solid var(--border-glass);
+            backdrop-filter: blur(20px);
+        }
+        .logo { display: flex; align-items: center; gap: 12px; font-size: 20px; font-weight: 800; }
+        .logo-icon {
+            width: 42px; height: 42px; display: flex; align-items: center; justify-content: center;
+            border-radius: 12px; background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: #030712; font-size: 20px; box-shadow: 0 0 20px var(--primary-glow);
+        }
+        .logo span { color: var(--primary); }
+
+        .dashboard-stats { display: flex; gap: 16px; align-items: center; }
+        .stat-badge {
+            background: rgba(17, 24, 39, 0.6); border: 1px solid var(--border-glass);
+            padding: 8px 14px; border-radius: 12px; font-size: 11px; color: var(--text-muted);
+        }
+        .stat-badge strong { color: var(--primary); font-size: 13px; }
+
+        .nav-btn {
+            padding: 10px 20px; color: var(--primary); border: 1px solid rgba(0, 255, 157, 0.3);
+            background: rgba(0, 255, 157, 0.05); border-radius: 12px; font-size: 13px; font-weight: 700;
+            transition: all 0.3s ease;
+        }
+        .nav-btn:hover { background: rgba(0, 255, 157, 0.15); box-shadow: 0 0 15px var(--primary-glow); }
+
+        /* HERO SECTION */
+        .hero {
+            max-width: 1300px; margin: 0 auto; padding: 40px 5% 30px;
+            display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 40px; align-items: start;
+        }
+        .badge {
+            display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 50px;
+            color: var(--primary); background: rgba(0, 255, 157, 0.08); border: 1px solid rgba(0, 255, 157, 0.2);
+            font-size: 11px; font-weight: 700; letter-spacing: 0.8px; margin-bottom: 16px;
+        }
+        .badge-dot {
+            width: 6px; height: 6px; border-radius: 50%; background: var(--primary);
+            box-shadow: 0 0 10px var(--primary); animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+        .hero h1 { font-size: clamp(30px, 3.2vw, 44px); line-height: 1.15; margin-bottom: 12px; }
+        .gradient-text {
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .hero-description { color: var(--text-muted); font-size: 14px; line-height: 1.6; margin-bottom: 20px; }
+
+        /* LEAGUE SELECTOR TABS */
+        .league-tabs {
+            display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 6px;
+            scrollbar-width: none;
+        }
+        .league-tabs::-webkit-scrollbar { display: none; }
+        .league-tab-btn {
+            padding: 10px 18px; border-radius: 12px; font-size: 12px; font-weight: 700; white-space: nowrap;
+            transition: all 0.3s ease; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+        }
+        .league-tab-btn.active {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: #030712; box-shadow: 0 0 15px var(--primary-glow);
+        }
+        .league-tab-btn.inactive {
+            background: rgba(17, 24, 39, 0.6); color: var(--text-muted); border: 1px solid var(--border-glass);
+        }
+        .league-tab-btn.inactive:hover {
+            color: #fff; border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* TABS AUTO/MANUAL */
+        .tab-wrapper {
+            display: flex; background: rgba(3, 7, 18, 0.7); padding: 6px; border-radius: 16px;
+            border: 1px solid var(--border-glass); margin-bottom: 16px; gap: 8px;
+        }
+        .tab-btn {
+            flex: 1; padding: 12px 14px; border-radius: 12px; border: none; background: transparent;
+            color: var(--text-muted); font-size: 12px; font-weight: 700; cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .tab-btn.active {
+            background: linear-gradient(135deg, rgba(0, 255, 157, 0.15), rgba(0, 191, 255, 0.15));
+            color: var(--primary); border: 1px solid rgba(0, 255, 157, 0.3);
+            box-shadow: 0 0 15px rgba(0, 255, 157, 0.15);
+        }
+
+        /* FORM */
+        .ai-input-form {
+            display: flex; flex-direction: column; gap: 16px; background: var(--bg-card);
+            padding: 26px; border-radius: 24px; border: 1px solid var(--border-glass);
+            backdrop-filter: blur(12px); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        .form-section-title {
+            color: var(--primary); font-size: 11px; font-weight: 700; letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .form-grid-teams { 
+            display: grid; 
+            grid-template-columns: 1fr auto 1fr; 
+            gap: 10px; 
+            align-items: center; 
+        }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .input-group {
+            background: rgba(3, 7, 18, 0.6); border: 1px solid var(--border-glass);
+            padding: 12px 16px; border-radius: 14px; transition: all 0.3s ease;
+        }
+        .input-group:focus-within {
+            border-color: rgba(0, 255, 157, 0.5); box-shadow: 0 0 20px rgba(0, 255, 157, 0.1);
+        }
+        .input-group label {
+            display: block; color: var(--text-muted); font-size: 10px; font-weight: 700;
+            margin-bottom: 6px; text-transform: uppercase;
+        }
+        .input-group input, .input-group select {
+            width: 100%; background: transparent; border: none; color: #fff;
+            font-size: 14px; font-weight: 600; outline: none; font-family: inherit;
+        }
+        .input-group select option { background: #111827; color: #fff; }
+
+        .btn-swap-teams {
+            background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-glass);
+            color: var(--text-muted); width: 36px; height: 36px; border-radius: 50%;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            font-size: 14px; transition: all 0.2s ease; margin-top: 14px;
+        }
+        .btn-swap-teams:hover {
+            color: var(--primary); border-color: var(--primary); transform: rotate(180deg);
+        }
+
+        .auto-notice {
+            background: rgba(0, 191, 255, 0.08); border: 1px solid rgba(0, 191, 255, 0.2);
+            padding: 14px; border-radius: 14px; font-size: 12px; color: #93c5fd; line-height: 1.5;
+            display: flex; gap: 10px; align-items: center;
+        }
+        .primary-btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+            width: 100%; padding: 16px; color: #030712; background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 14px; border: none; font-size: 15px; font-weight: 800; cursor: pointer;
+            box-shadow: 0 0 25px var(--primary-glow); transition: all 0.3s ease;
+        }
+        .primary-btn:hover { transform: translateY(-2px); filter: brightness(1.05); }
+
+        /* RIGHT CARD */
+        .ai-card {
+            position: relative; padding: 28px; border-radius: 24px; background: var(--bg-card);
+            border: 1px solid var(--border-glass); backdrop-filter: blur(16px);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+            transition: box-shadow 0.4s ease;
+        }
+        .ai-card.highlight {
+            box-shadow: 0 0 30px rgba(0, 255, 157, 0.35);
+        }
+        .card-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding-bottom: 16px; border-bottom: 1px solid var(--border-glass); margin-bottom: 20px;
+        }
+        .analysis-title { font-size: 11px; letter-spacing: 1.2px; color: var(--text-muted); font-weight: 700; }
+        .ai-status {
+            display: flex; align-items: center; gap: 8px; color: var(--primary);
+            font-size: 10px; font-weight: 700; background: rgba(0, 255, 157, 0.08);
+            padding: 5px 10px; border-radius: 20px; border: 1px solid rgba(0, 255, 157, 0.2);
+        }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--primary); }
+
+        .matchup-container {
+            display: flex; align-items: center; justify-content: space-between; text-align: center;
+            margin-bottom: 20px; padding: 20px; background: rgba(3, 7, 18, 0.5);
+            border-radius: 18px; border: 1px solid var(--border-glass);
+        }
+        .team-box { width: 110px; }
+        .team-logo-wrapper {
+            width: 64px; height: 64px; margin: 0 auto 10px; display: flex; align-items: center;
+            justify-content: center; border-radius: 50%; background: radial-gradient(circle, rgba(255, 255, 255, 0.05), rgba(3, 7, 18, 0.9));
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .team-logo-wrapper img { width: 38px; height: 38px; object-fit: contain; }
+        .team-display-name { font-size: 13px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .vs-badge {
+            font-size: 13px; font-weight: 800; color: var(--text-muted); background: #030712;
+            width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+            border-radius: 50%; border: 1px solid var(--border-glass);
+        }
+
+        .score-display-box {
+            text-align: center; background: linear-gradient(135deg, rgba(0, 255, 157, 0.08), rgba(0, 191, 255, 0.04));
+            border: 1px solid rgba(0, 255, 157, 0.2); border-radius: 18px; padding: 22px; margin-bottom: 20px;
+        }
+        .score-number { font-size: 46px; font-weight: 800; letter-spacing: 3px; color: var(--primary); text-shadow: 0 0 20px var(--primary-glow); }
+        .score-text-status { font-size: 13px; font-weight: 700; color: #fff; margin-top: 4px; }
+
+        /* ML PROBABILITY BOX */
+        .prob-section {
+            background: rgba(17, 24, 39, 0.6); padding: 14px 18px; border-radius: 16px;
+            border: 1px solid var(--border-glass); margin-bottom: 20px;
+        }
+        .prob-title {
+            font-size: 11px; font-weight: 700; color: var(--primary); text-transform: uppercase;
+            margin-bottom: 10px; text-align: center; letter-spacing: 0.5px;
+        }
+        .prob-labels {
+            display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 8px; font-weight: 600;
+        }
+        .prob-bar-container {
+            display: flex; height: 8px; border-radius: 6px; overflow: hidden; background: #111827;
+        }
+        .prob-bar-h { background: var(--secondary); transition: width 0.5s ease; }
+        .prob-bar-d { background: var(--draw); transition: width 0.5s ease; }
+        .prob-bar-a { background: var(--primary); transition: width 0.5s ease; }
+
+        /* H2H */
+        .h2h-section {
+            background: rgba(3, 7, 18, 0.5); padding: 18px; border-radius: 16px; border: 1px solid var(--border-glass); margin-bottom: 20px;
+        }
+        .h2h-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+        .h2h-title { font-size: 11px; font-weight: 700; color: var(--primary); text-transform: uppercase; }
+        .h2h-total-badge { font-size: 10px; padding: 3px 8px; border-radius: 12px; background: rgba(255, 255, 255, 0.05); color: var(--text-muted); }
+        .h2h-stats-row {
+            display: grid; grid-template-columns: 1fr 1fr 1fr; text-align: center; background: rgba(17, 24, 39, 0.6);
+            padding: 12px 8px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.04); margin-bottom: 14px;
+        }
+        .h2h-stat-num { font-size: 20px; font-weight: 800; color: #fff; }
+        .h2h-match-pill {
+            display: flex; justify-content: space-between; align-items: center; font-size: 11px;
+            padding: 7px 12px; border-radius: 8px; background: rgba(17, 24, 39, 0.35); margin-bottom: 6px;
+            list-style: none;
+        }
+
+        /* ANALYTICS STATS */
+        .stat-row {
+            background: rgba(3, 7, 18, 0.5); padding: 12px 16px; border-radius: 14px; border: 1px solid var(--border-glass); margin-bottom: 10px;
+        }
+        .stat-info-bar { display: flex; justify-content: space-between; font-size: 11px; font-weight: 600; margin-bottom: 8px; color: var(--text-muted); }
+        .comparison-bars { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .bar-track { height: 6px; background: #111827; border-radius: 10px; overflow: hidden; }
+        .bar-fill-home { height: 100%; background: var(--secondary); border-radius: 10px; transition: width 0.5s ease; }
+        .bar-fill-away { height: 100%; background: var(--primary); border-radius: 10px; transition: width 0.5s ease; }
+
+        /* FORM BADGES */
+        .form-guide-row {
+            background: rgba(17, 24, 39, 0.4); padding: 10px 12px; border-radius: 10px; margin-bottom: 10px;
+        }
+        .form-badges { display: flex; gap: 4px; }
+        .f-badge {
+            width: 20px; height: 20px; border-radius: 4px; display: inline-flex; align-items: center;
+            justify-content: center; font-size: 10px; font-weight: 800; color: #fff;
+        }
+        .f-win { background-color: var(--win); }
+        .f-draw { background-color: var(--draw); }
+        .f-loss { background-color: var(--loss); }
+
+        /* FIXTURES ACCORDION & SCROLLBAR */
+        .history-container { max-width: 1300px; margin: 0 auto 30px; padding: 0 5%; }
+        .history-card {
+            background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: 20px;
+            padding: 24px; backdrop-filter: blur(12px);
+        }
+
+        .rounds-scroll-wrapper {
+            display: flex; gap: 8px; align-items: center; 
+            background: rgba(3, 7, 18, 0.6); padding: 8px 12px; border-radius: 14px; 
+            border: 1px solid var(--border-glass); overflow-x: auto; max-width: 100%;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+        }
+        .rounds-scroll-wrapper::-webkit-scrollbar {
+            height: 5px;
+        }
+        .rounds-scroll-wrapper::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+        }
+        .rounds-scroll-wrapper::-webkit-scrollbar-thumb {
+            background: rgba(0, 255, 157, 0.25);
+            border-radius: 10px;
+        }
+        .rounds-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+            background: var(--primary);
+        }
+
+        .round-nav-btn {
+            padding: 7px 14px; border-radius: 10px; font-size: 11px; font-weight: 800; 
+            text-decoration: none; white-space: nowrap; transition: all 0.2s; flex: 0 0 auto;
+            color: var(--text-muted); background: rgba(255, 255, 255, 0.05);
+            border: 1px solid transparent;
+        }
+        .round-nav-btn:hover {
+            color: #fff; background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(0, 255, 157, 0.3);
+        }
+        .round-nav-btn.active {
+            background: var(--primary) !important; color: #030712 !important; 
+            box-shadow: 0 0 12px var(--primary-glow); border-color: var(--primary) !important;
+        }
+
+        /* TABLE */
+        .history-table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 13px; }
+        .history-table th {
+            text-align: left; padding: 12px; color: var(--text-muted); font-size: 11px;
+            text-transform: uppercase; border-bottom: 1px solid var(--border-glass);
+        }
+        .history-table td { padding: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.03); color: #d1d5db; }
+        .mode-tag {
+            font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px;
+            background: rgba(0, 255, 157, 0.1); color: var(--primary);
+        }
+
+        .btn-delete-item {
+            background: transparent; border: none; color: #ef4444; cursor: pointer;
+            font-size: 15px; padding: 4px 8px; border-radius: 6px; transition: all 0.2s ease;
+        }
+        .btn-delete-item:hover {
+            background: rgba(239, 68, 68, 0.15); transform: scale(1.15);
+        }
+        .btn-clear-all {
+            background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #f87171; font-size: 11px; font-weight: 700; padding: 7px 14px;
+            border-radius: 10px; cursor: pointer; transition: all 0.2s ease;
+        }
+        .btn-clear-all:hover {
+            background: rgba(239, 68, 68, 0.25); color: #fff;
+        }
+
+        footer {
+            padding: 30px; text-align: center; color: #4b5563; font-size: 12px;
+            border-top: 1px solid var(--border-glass);
+        }
+        footer span { color: var(--primary); font-weight: 700; }
+
+        @media (max-width: 992px) {
+            .hero { grid-template-columns: 1fr; }
+            .dashboard-stats { display: none; }
+            .form-grid-teams { grid-template-columns: 1fr; }
+            .btn-swap-teams { margin: -4px auto; transform: rotate(90deg); }
+            .btn-swap-teams:hover { transform: rotate(270deg); }
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav>
+        <div class="logo">
+            <div class="logo-icon">⚽</div>
+            FOOTBALL <span>AI</span>
+        </div>
+        <div class="dashboard-stats">
+            <div class="stat-badge">Độ chính xác: <strong>{{ accuracy_rate }}%</strong></div>
+            <div class="stat-badge">Lượt phân tích: <strong id="totalPredCounter">{{ total_predictions }}</strong></div>
+            <a href="?league=E0" class="nav-btn">AI PRO SYSTEM</a>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <!-- CỘT BÊN TRÁI -->
+        <div>
+            <div class="badge">
+                <div class="badge-dot"></div>
+                MULTI-LEAGUE AI ENGINE
+            </div>
+
+            <h1>
+                Phân tích bóng đá
+                <br>
+                <span class="gradient-text">đa giải đấu bằng AI.</span>
+            </h1>
+
+            <p class="hero-description">
+                Hỗ trợ 5 giải vô địch hàng đầu châu Âu. Chọn giải đấu phía dưới để tự động cập nhật danh sách câu lạc bộ và dữ liệu đối đầu.
+            </p>
+
+            <!-- THANH CHỌN GIẢI ĐẤU -->
+            <div class="league-tabs">
+                {% for l in leagues %}
+                <a href="?league={{ l.code }}" 
+                   class="league-tab-btn {% if current_league.code == l.code %}active{% else %}inactive{% endif %}">
+                    🏆 {{ l.name }} ({{ l.country }})
+                </a>
+                {% endfor %}
+            </div>
+
+            <!-- TABS CHUYỂN CHẾ ĐỘ -->
+            <div class="tab-wrapper">
+                <button type="button" class="tab-btn active" id="btnTabAuto" onclick="switchMode('auto')">
+                    ⚡ Tự động (Database)
+                </button>
+                <button type="button" class="tab-btn" id="btnTabManual" onclick="switchMode('manual')">
+                    ⚙️ Tự nhập chỉ số
+                </button>
+            </div>
+
+            <form class="ai-input-form" id="predictionForm">
+                {% csrf_token %}
+                <input type="hidden" name="mode" id="modeInput" value="auto">
+                
+                <div class="form-section-title">🛡️ Đội bóng (Giải: {{ current_league.name }})</div>
+                
+                <!-- BỐ CỤC CHỌN ĐỘI CÓ NÚT ĐẢO CHIỀU SÂN NHÀ/SÂN KHÁCH -->
+                <div class="form-grid-teams">
+                    <div class="input-group">
+                        <label>🏠 Đội Nhà (Home)</label>
+                        <input type="text" name="home_name" id="home_name" list="teams_list" value="{{ home_name }}" required placeholder="Chọn đội nhà...">
+                    </div>
+                    <button type="button" class="btn-swap-teams" onclick="swapTeams()" title="Đảo sân Nhà / Khách">
+                        ⇄
+                    </button>
+                    <div class="input-group">
+                        <label>✈️ Đội Khách (Away)</label>
+                        <input type="text" name="away_name" id="away_name" list="teams_list" value="{{ away_name }}" required placeholder="Chọn đội khách...">
+                    </div>
+                </div>
+
+                <datalist id="teams_list">
+                    {% for team in teams %}
+                        <option value="{{ team.name }}">
+                    {% endfor %}
+                </datalist>
+
+                <!-- AUTO NOTICE -->
+                <div id="autoSection">
+                    <div class="auto-notice">
+                        <span style="font-size: 18px;">⚡</span>
+                        <div><strong>Chế độ Tự động:</strong> AI đọc dữ liệu phong độ và tỷ lệ đối đầu trực tiếp từ giải <strong>{{ current_league.name }}</strong> trong cơ sở dữ liệu.</div>
+                    </div>
+                </div>
+
+                <!-- MANUAL INPUTS -->
+                <div id="manualSection" style="display: none;">
+                    <div class="form-section-title">📊 Điểm phong độ (0 - 10)</div>
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <label>Phong độ Đội Nhà</label>
+                            <input type="number" step="0.1" name="home_form" id="home_form" value="{{ home_form }}">
+                        </div>
+                        <div class="input-group">
+                            <label>Phong độ Đội Khách</label>
+                            <input type="number" step="0.1" name="away_form" id="away_form" value="{{ away_form }}">
+                        </div>
+                    </div>
+
+                    <div class="form-section-title">⚽ Bàn thắng TB / trận</div>
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <label>Bàn thắng (Đội nhà)</label>
+                            <input type="number" step="0.1" name="home_avg_goals" id="home_avg_goals" value="{{ home_avg_goals }}">
+                        </div>
+                        <div class="input-group">
+                            <label>Bàn thắng (Đội khách)</label>
+                            <input type="number" step="0.1" name="away_avg_goals" id="away_avg_goals" value="{{ away_avg_goals }}">
+                        </div>
+                    </div>
+
+                    <div class="form-section-title">🛑 Bàn thua TB / trận</div>
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <label>Bàn thua (Đội nhà)</label>
+                            <input type="number" step="0.1" name="home_avg_conceded" id="home_avg_conceded" value="{{ home_avg_conceded }}">
+                        </div>
+                        <div class="input-group">
+                            <label>Bàn thua (Đội khách)</label>
+                            <input type="number" step="0.1" name="away_avg_conceded" id="away_avg_conceded" value="{{ away_avg_conceded }}">
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="primary-btn" id="submitBtn">
+                    🚀 AI Phân Tích Trận Đấu
+                </button>
+            </form>
+        </div>
+
+        <!-- CỘT BÊN PHẢI: KẾT QUẢ -->
+        <div class="ai-card" id="resultContainer">
+            <div class="card-header">
+                <div class="analysis-title">AI MATCH REPORT & SCORE</div>
+                <div class="ai-status">
+                    <div class="status-dot"></div>
+                    AI ONLINE
+                </div>
+            </div>
+
+            <!-- PLACEHOLDER -->
+            <div id="initialState" style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
+                <div style="font-size: 42px; margin-bottom: 16px;">🤖</div>
+                <p style="font-size: 14px; line-height: 1.6;">Chọn hai đội bóng ở cột bên trái hoặc bấm "⚡ Dự đoán" ở lịch thi đấu bên dưới.<br>AI sẽ quét dữ liệu và dự đoán tức thì mà không reload trang.</p>
+            </div>
+
+            <!-- RESULT CONTENT -->
+            <div id="resultContent" style="display: none;">
+                <div class="matchup-container">
+                    <div class="team-box">
+                        <div class="team-logo-wrapper"><img id="resHomeLogo" src="" alt="Logo"></div>
+                        <div class="team-display-name" id="resHomeName"></div>
+                    </div>
+                    <div class="vs-badge">VS</div>
+                    <div class="team-box">
+                        <div class="team-logo-wrapper"><img id="resAwayLogo" src="" alt="Logo"></div>
+                        <div class="team-display-name" id="resAwayName"></div>
+                    </div>
+                </div>
+
+                <!-- TỶ SỐ -->
+                <div class="score-display-box">
+                    <div class="score-number" id="resScore"></div>
+                    <div class="score-text-status" id="resStatus"></div>
+                </div>
+
+                <!-- XÁC SUẤT ML -->
+                <div class="prob-section">
+                    <div class="prob-title">🧠 Xác suất tính toán bởi Machine Learning</div>
+                    <div class="prob-labels">
+                        <span style="color: var(--secondary);">Chủ nhà: <strong id="mlProbHome">--%</strong></span>
+                        <span style="color: var(--draw);">Hòa: <strong id="mlProbDraw">--%</strong></span>
+                        <span style="color: var(--primary);">Khách: <strong id="mlProbAway">--%</strong></span>
+                    </div>
+                    <div class="prob-bar-container">
+                        <div class="prob-bar-h" id="probBarHome" style="width: 33.3%;"></div>
+                        <div class="prob-bar-d" id="probBarDraw" style="width: 33.3%;"></div>
+                        <div class="prob-bar-a" id="probBarAway" style="width: 33.4%;"></div>
+                    </div>
+                </div>
+
+                <!-- LỊCH SỬ ĐỐI ĐẦU H2H -->
+                <div class="h2h-section" id="resH2HSection">
+                    <div class="h2h-header">
+                        <div class="h2h-title">⚔️ Lịch sử đối đầu</div>
+                        <span class="h2h-total-badge" id="resH2HTotal"></span>
+                    </div>
+                    <div class="h2h-stats-row">
+                        <div><h5 style="color: var(--secondary);" id="h2hHomeLabel"></h5><div class="h2h-stat-num" id="h2hHomeWins" style="color: var(--secondary);"></div></div>
+                        <div><h5 style="color: var(--draw);">Hòa</h5><div class="h2h-stat-num" id="h2hDraws" style="color: var(--draw);"></div></div>
+                        <div><h5 style="color: var(--primary);" id="h2hAwayLabel"></h5><div class="h2h-stat-num" id="h2hAwayWins" style="color: var(--primary);"></div></div>
+                    </div>
+                    <div style="font-size: 10px; color: var(--text-muted); font-weight: 700; margin-bottom: 8px; text-transform: uppercase;">Gần đây nhất:</div>
+                    <ul class="h2h-recent-matches" id="resH2HList"></ul>
+                </div>
+
+                <!-- BIỂU ĐỒ SO SÁNH -->
+                <div class="stat-row">
+                    <div class="stat-info-bar">
+                        <span id="labelFormHome"></span>
+                        <span>Điểm phong độ</span>
+                        <span id="labelFormAway"></span>
+                    </div>
+                    <div class="comparison-bars">
+                        <div class="bar-track"><div class="bar-fill-home" id="barHomeForm"></div></div>
+                        <div class="bar-track" style="direction: rtl;"><div class="bar-fill-away" id="barAwayForm"></div></div>
+                    </div>
+                </div>
+
+                <div class="stat-row">
+                    <div class="stat-info-bar">
+                        <span id="labelGoalsHome"></span>
+                        <span>Bàn thắng TB / trận</span>
+                        <span id="labelGoalsAway"></span>
+                    </div>
+                    <div class="comparison-bars">
+                        <div class="bar-track"><div class="bar-fill-home" id="barHomeGoals"></div></div>
+                        <div class="bar-track" style="direction: rtl;"><div class="bar-fill-away" id="barAwayGoals"></div></div>
+                    </div>
+                </div>
+
+                <!-- NHẬN ĐỊNH PHONG ĐỘ -->
+                <div class="form-guide-row">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <strong style="color: var(--secondary);" id="commentHomeName"></strong>
+                        <div class="form-badges" id="badgesHome"></div>
+                    </div>
+                    <p style="font-size: 11px; color: var(--text-muted); font-style: italic; margin-top: 4px;" id="commentHomeText"></p>
+                </div>
+
+                <div class="form-guide-row">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <strong style="color: var(--primary);" id="commentAwayName"></strong>
+                        <div class="form-badges" id="badgesAway"></div>
+                    </div>
+                    <p style="font-size: 11px; color: var(--text-muted); font-style: italic; margin-top: 4px;" id="commentAwayText"></p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- LỊCH THI ĐẤU THEO VÒNG ĐẤU -->
+    <div class="history-container">
+        <div class="history-card" style="background: linear-gradient(135deg, rgba(17, 24, 39, 0.85), rgba(3, 7, 18, 0.9));">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                <div>
+                    <h3 style="font-size: 18px; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 10px;">
+                        <span>📅</span> Lịch thi đấu: Vòng {{ current_round }}
+                    </h3>
+                    <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                        Giải đấu: <strong>{{ current_league.name }}</strong> (Giờ Việt Nam UTC+7)
+                    </p>
+                </div>
+
+                <!-- THANH CHỌN VÒNG ĐẤU CUỘN NGANG ĐẦY ĐỦ TỪ VÒNG 1 ĐẾN VÒNG CUỐI -->
+                <div class="rounds-scroll-wrapper" id="roundsScrollContainer">
+                    <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-right: 4px; white-space: nowrap;">Chọn vòng:</span>
+                    {% for r in available_rounds %}
+                    <a href="?league={{ current_league.code }}&round={{ r }}" 
+                       class="round-nav-btn {% if current_round == r %}active{% endif %}"
+                       id="round-btn-{{ r }}">
+                        Vòng {{ r }}
+                    </a>
+                    {% empty %}
+                    <span style="font-size: 11px; color: var(--text-muted);">Vòng {{ current_round }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 14px;">
+                {% for match in upcoming_matches %}
+                <div style="background: rgba(3, 7, 18, 0.65); border: 1px solid var(--border-glass); border-radius: 16px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s;" onmouseover="this.style.borderColor='rgba(0,255,157,0.3)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.08)'">
+                    <div>
+                        <!-- NGÀY & GIỜ -->
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                            <span style="background: rgba(0, 255, 157, 0.12); color: var(--primary); font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 6px;">
+                                ⏰ {{ match.kickoff_time|time:"H:i" }}
+                            </span>
+                            <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">
+                                {{ match.date|date:"D, d/m/Y" }}
+                            </span>
+                        </div>
+
+                        <!-- 2 ĐỘI -->
+                        <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: #fff;">
+                            <img src="{{ match.home_team.logo_url|default:'https://crests.football-data.org/default.png' }}" alt="" style="width: 20px; height: 20px; object-fit: contain;">
+                            <span>{{ match.home_team.name }}</span>
+                            <span style="color: var(--text-muted); font-size: 11px; margin: 0 2px;">vs</span>
+                            <img src="{{ match.away_team.logo_url|default:'https://crests.football-data.org/default.png' }}" alt="" style="width: 20px; height: 20px; object-fit: contain;">
+                            <span>{{ match.away_team.name }}</span>
+                        </div>
+                    </div>
+
+                    <!-- NÚT 1-CLICK PREDICT -->
+                    <button type="button" 
+                            onclick="quickPredict('{{ match.home_team.name }}', '{{ match.away_team.name }}')" 
+                            style="background: linear-gradient(135deg, rgba(0, 255, 157, 0.15), rgba(0, 191, 255, 0.15)); border: 1px solid rgba(0, 255, 157, 0.35); color: var(--primary); font-size: 11px; font-weight: 800; padding: 9px 15px; border-radius: 10px; cursor: pointer; transition: all 0.2s;"
+                            onmouseover="this.style.boxShadow='0 0 15px rgba(0,255,157,0.3)'; this.style.transform='scale(1.03)';"
+                            onmouseout="this.style.boxShadow='none'; this.style.transform='scale(1)';">
+                        ⚡ Dự đoán
+                    </button>
+                </div>
+                {% empty %}
+                <div style="font-size: 12px; color: var(--text-muted); text-align: center; padding: 30px; grid-column: 1/-1;">
+                    Chưa có dữ liệu lịch thi đấu cho vòng này.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- BẢNG LỊCH SỬ DỰ ĐOÁN -->
+    <div class="history-container">
+        <div class="history-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="font-size: 16px; font-weight: 700; color: #fff;">📋 Lịch sử dự đoán gần đây</h3>
+                    <span style="font-size: 11px; color: var(--text-muted);">Tự động lưu vào MySQL Database</span>
+                </div>
+                <button type="button" class="btn-clear-all" onclick="clearAllHistory()">
+                    🗑️ Xóa tất cả lịch sử
+                </button>
+            </div>
+
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>Thời gian</th>
+                        <th>Trận đấu</th>
+                        <th>AI Dự đoán</th>
+                        <th>Chế độ</th>
+                        <th style="text-align: center; width: 60px;">Xóa</th>
+                    </tr>
+                </thead>
+                <tbody id="historyTableBody">
+                    {% for item in recent_history %}
+                    <tr id="history-row-{{ item.id }}">
+                        <td>{{ item.created_at|date:"H:i - d/m" }}</td>
+                        <td><strong>{{ item.home_team.name }}</strong> vs <strong>{{ item.away_team.name }}</strong></td>
+                        <td style="color: var(--primary); font-weight: bold;">{{ item.predicted_home_goals }} - {{ item.predicted_away_goals }}</td>
+                        <td><span class="mode-tag">{{ item.mode|upper }}</span></td>
+                        <td style="text-align: center;">
+                            <button type="button" class="btn-delete-item" onclick="deleteHistoryItem('{{ item.id }}')" title="Xóa dòng này">
+                                🗑️
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr id="emptyHistoryRow">
+                        <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 20px;">Chưa có lịch sử dự đoán nào trong cơ sở dữ liệu.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <footer>
+        ⚽ <span>FOOTBALL AI</span> — Hệ thống phân tích và dự đoán bóng đá đa giải đấu
+    </footer>
+
+    <!-- SCRIPT AJAX & LOGIC HOÀN CHỈNH -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // TỰ ĐỘNG CUỘN ĐẾN VÒNG ĐANG ACTIVE TRÊN THANH TRƯỢT
+            const activeRoundBtn = document.querySelector(".round-nav-btn.active");
+            if (activeRoundBtn) {
+                activeRoundBtn.scrollIntoView({
+                    behavior: "smooth",
+                    inline: "center",
+                    block: "nearest"
+                });
+            }
+        });
+
+        function switchMode(mode) {
+            const modeInput = document.getElementById('modeInput');
+            const autoSection = document.getElementById('autoSection');
+            const manualSection = document.getElementById('manualSection');
+            const submitBtn = document.getElementById('submitBtn');
+            const btnTabAuto = document.getElementById('btnTabAuto');
+            const btnTabManual = document.getElementById('btnTabManual');
+
+            modeInput.value = mode;
+
+            if (mode === 'auto') {
+                btnTabAuto.classList.add('active');
+                btnTabManual.classList.remove('active');
+                autoSection.style.display = 'block';
+                manualSection.style.display = 'none';
+                submitBtn.innerHTML = '🚀 AI Phân Tích Trận Đấu';
+            } else {
+                btnTabManual.classList.add('active');
+                btnTabAuto.classList.remove('active');
+                autoSection.style.display = 'none';
+                manualSection.style.display = 'block';
+                submitBtn.innerHTML = '⚡ Phân tích theo thông số tùy chỉnh';
+            }
+        }
+
+        // ĐỔI VỊ TRÍ 2 ĐỘI BÓNG
+        function swapTeams() {
+            const home = document.getElementById('home_name');
+            const away = document.getElementById('away_name');
+            const temp = home.value;
+            home.value = away.value;
+            away.value = temp;
+        }
+
+        function quickPredict(homeName, awayName) {
+            switchMode('auto');
+            document.getElementById('home_name').value = homeName;
+            document.getElementById('away_name').value = awayName;
+            
+            // Cuộn mượt lên khung dự đoán và thêm hiệu ứng sáng
+            const container = document.getElementById('resultContainer');
+            container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            container.classList.add('highlight');
+            setTimeout(() => container.classList.remove('highlight'), 1200);
+
+            document.getElementById('predictionForm').dispatchEvent(new Event('submit'));
+        }
+
+        document.getElementById('predictionForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.innerHTML;
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '⏳ AI đang quét và phân tích dữ liệu...';
+
+            const formData = new FormData(this);
+
+            try {
+                const response = await fetch('/', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    document.getElementById('initialState').style.display = 'none';
+                    document.getElementById('resultContent').style.display = 'block';
+
+                    document.getElementById('resHomeLogo').src = data.home_logo;
+                    document.getElementById('resAwayLogo').src = data.away_logo;
+                    document.getElementById('resHomeName').innerText = data.home_name;
+                    document.getElementById('resAwayName').innerText = data.away_name;
+
+                    document.getElementById('resScore').innerText = `${data.home_goals} — ${data.away_goals}`;
+                    let statusText = "🤝 Nhận định: Hai đội chia điểm sau 90 phút";
+                    if (data.prediction === 'H') statusText = `🏆 Nhận định: ${data.home_name} giành chiến thắng`;
+                    else if (data.prediction === 'A') statusText = `🏆 Nhận định: ${data.away_name} giành chiến thắng`;
+                    document.getElementById('resStatus').innerText = statusText;
+
+                    document.getElementById('mlProbHome').innerText = `${data.prob_home}%`;
+                    document.getElementById('mlProbDraw').innerText = `${data.prob_draw}%`;
+                    document.getElementById('mlProbAway').innerText = `${data.prob_away}%`;
+                    document.getElementById('probBarHome').style.width = `${data.prob_home}%`;
+                    document.getElementById('probBarDraw').style.width = `${data.prob_draw}%`;
+                    document.getElementById('probBarAway').style.width = `${data.prob_away}%`;
+
+                    if (data.h2h) {
+                        document.getElementById('resH2HSection').style.display = 'block';
+                        document.getElementById('resH2HTotal').innerText = `${data.h2h.total_games} lần chạm trán`;
+                        document.getElementById('h2hHomeLabel').innerText = `${data.home_name} thắng`;
+                        document.getElementById('h2hAwayLabel').innerText = `${data.away_name} thắng`;
+                        document.getElementById('h2hHomeWins').innerText = data.h2h.team_a_wins;
+                        document.getElementById('h2hAwayWins').innerText = data.h2h.team_b_wins;
+                        document.getElementById('h2hDraws').innerText = data.h2h.draws;
+
+                        const list = document.getElementById('resH2HList');
+                        list.innerHTML = '';
+                        if (data.h2h.recent_matches && data.h2h.recent_matches.length > 0) {
+                            data.h2h.recent_matches.forEach(m => {
+                                list.innerHTML += `
+                                    <li class="h2h-match-pill">
+                                        <span style="color: var(--text-muted); font-size: 10px;">${m.date}</span>
+                                        <span>${m.home}</span>
+                                        <span style="font-weight: 700; color: var(--primary); background: rgba(0,255,157,0.08); padding: 2px 8px; border-radius: 6px;">${m.score}</span>
+                                        <span>${m.away}</span>
+                                    </li>
+                                `;
+                            });
+                        } else {
+                            list.innerHTML = '<li style="font-size: 11px; color: var(--text-muted); text-align: center; padding: 6px;">Chưa có lịch sử đối đầu trực tiếp</li>';
+                        }
+                    }
+
+                    document.getElementById('labelFormHome').innerHTML = `${data.home_name}: <strong>${data.home_form}</strong>`;
+                    document.getElementById('labelFormAway').innerHTML = `${data.away_name}: <strong>${data.away_form}</strong>`;
+                    document.getElementById('barHomeForm').style.width = `${Math.min(100, Math.max(0, (data.home_form / 10) * 100))}%`;
+                    document.getElementById('barAwayForm').style.width = `${Math.min(100, Math.max(0, (data.away_form / 10) * 100))}%`;
+
+                    document.getElementById('labelGoalsHome').innerHTML = `${data.home_name}: <strong>${data.home_avg_goals}</strong>`;
+                    document.getElementById('labelGoalsAway').innerHTML = `${data.away_name}: <strong>${data.away_avg_goals}</strong>`;
+                    document.getElementById('barHomeGoals').style.width = `${Math.min(100, (data.home_avg_goals / 3.0) * 100)}%`;
+                    document.getElementById('barAwayGoals').style.width = `${Math.min(100, (data.away_avg_goals / 3.0) * 100)}%`;
+
+                    document.getElementById('commentHomeName').innerText = data.home_name;
+                    document.getElementById('commentAwayName').innerText = data.away_name;
+                    document.getElementById('commentHomeText').innerText = `🤖 AI Nhận định: ${data.home_form_analysis}`;
+                    document.getElementById('commentAwayText').innerText = `🤖 AI Nhận định: ${data.away_form_analysis}`;
+
+                    const badgesH = document.getElementById('badgesHome');
+                    badgesH.innerHTML = data.home_recent_form.map(r => `<span class="f-badge ${r==='W'?'f-win':(r==='D'?'f-draw':'f-loss')}">${r}</span>`).join('');
+                    const badgesA = document.getElementById('badgesAway');
+                    badgesA.innerHTML = data.away_recent_form.map(r => `<span class="f-badge ${r==='W'?'f-win':(r==='D'?'f-draw':'f-loss')}">${r}</span>`).join('');
+
+                    const emptyRow = document.getElementById('emptyHistoryRow');
+                    if (emptyRow) emptyRow.remove();
+
+                    const tbody = document.getElementById('historyTableBody');
+                    const newRow = `
+                        <tr id="history-row-${data.history_item.id}">
+                            <td>${data.history_item.time}</td>
+                            <td><strong>${data.history_item.home}</strong> vs <strong>${data.history_item.away}</strong></td>
+                            <td style="color: var(--primary); font-weight: bold;">${data.history_item.score}</td>
+                            <td><span class="mode-tag">${data.history_item.mode}</span></td>
+                            <td style="text-align: center;">
+                                <button type="button" class="btn-delete-item" onclick="deleteHistoryItem(${data.history_item.id})" title="Xóa dòng này">
+                                    🗑️
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.insertAdjacentHTML('afterbegin', newRow);
+
+                    const counter = document.getElementById('totalPredCounter');
+                    if (counter) counter.innerText = parseInt(counter.innerText || 0) + 1;
+                } else {
+                    alert(data.message || 'Có lỗi xảy ra!');
+                }
+            } catch (err) {
+                alert('Không thể kết nối đến máy chủ AI!');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        });
+
+        async function deleteHistoryItem(itemId) {
+            if (!confirm("Bạn có chắc chắn muốn xóa bản ghi dự đoán này?")) return;
+
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            try {
+                const response = await fetch(`/history/delete/${itemId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                const res = await response.json();
+                if (res.status === 'success') {
+                    const row = document.getElementById(`history-row-${itemId}`);
+                    if (row) {
+                        row.style.opacity = '0';
+                        setTimeout(() => {
+                            row.remove();
+                            const tbody = document.getElementById('historyTableBody');
+                            if (tbody.children.length === 0) {
+                                tbody.innerHTML = `<tr id="emptyHistoryRow"><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 20px;">Chưa có lịch sử dự đoán nào trong cơ sở dữ liệu.</td></tr>`;
+                            }
+                        }, 250);
+                    }
+                    const counter = document.getElementById('totalPredCounter');
+                    if (counter) counter.innerText = res.total_predictions;
+                } else {
+                    alert(res.message || "Lỗi khi xóa!");
+                }
+            } catch (err) {
+                alert("Lỗi kết nối máy chủ!");
+            }
+        }
+
+        async function clearAllHistory() {
+            if (!confirm("CẢNH BÁO: Bạn có chắc chắn muốn xóa TOÀN BỘ lịch sử dự đoán?")) return;
+
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            try {
+                const response = await fetch('/history/clear/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                const res = await response.json();
+                if (res.status === 'success') {
+                    const tbody = document.getElementById('historyTableBody');
+                    tbody.innerHTML = `<tr id="emptyHistoryRow"><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 20px;">Chưa có lịch sử dự đoán nào trong cơ sở dữ liệu.</td></tr>`;
+                    const counter = document.getElementById('totalPredCounter');
+                    if (counter) counter.innerText = 0;
+                }
+            } catch (err) {
+                alert("Lỗi kết nối máy chủ!");
+            }
+        }
+    </script>
+</body>
+</html>
