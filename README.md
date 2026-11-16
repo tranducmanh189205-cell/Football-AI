@@ -106,7 +106,7 @@ Thực nghiệm được tiến hành trên **18.260 trận đấu** (10 mùa gi
 ---
 
 ## 📂 5. Cấu trúc thư mục dự án
-
+---
 Football-AI/
 ├── config/                 # Cấu hình lõi của dự án Django (settings.py, urls.py, wsgi.py)
 ├── datasets/               # Kho dữ liệu lịch sử CSV của 5 giải vô địch quốc gia châu Âu
